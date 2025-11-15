@@ -8,10 +8,24 @@ export default function FileUpload() {
   const [files, setFiles] = useState([])
   const [dragActive, setDragActive] = useState(false)
 
+  // Cloudinary
   const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/da7eitibw/auto/upload"
   const UPLOAD_PRESET = "Document_management"
 
-  // ------------------ DRAG HANDLERS ------------------
+  // -----------------------------
+  // AUTH (GET TOKEN + USER)
+  // -----------------------------
+  const token = typeof window !== "undefined"
+    ? localStorage.getItem("token")
+    : null
+
+  const user = typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem("user"))
+    : null
+
+  // -----------------------------
+  // DRAG HANDLERS
+  // -----------------------------
   const handleDrag = (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -29,12 +43,19 @@ export default function FileUpload() {
     uploadFiles(Array.from(e.target.files))
   }
 
-  // ------------------ MAIN UPLOAD FUNCTION ------------------
+  // -----------------------------
+  // UPLOAD FUNCTION
+  // -----------------------------
   const uploadFiles = async (selectedFiles) => {
+    if (!token) {
+      alert("You are not logged in!")
+      return
+    }
+
     for (let file of selectedFiles) {
       const tempId = Math.random()
 
-      // step 1: update UI immediately
+      // UI update
       setFiles(prev => [
         ...prev,
         {
@@ -47,27 +68,25 @@ export default function FileUpload() {
         }
       ])
 
+      // Upload to Cloudinary
       const formData = new FormData()
       formData.append("file", file)
       formData.append("upload_preset", UPLOAD_PRESET)
 
-      console.log("Uploading to Cloudinary…")
-
       try {
-        const res = await axios.post(CLOUDINARY_URL, formData, {
+        const cloudRes = await axios.post(CLOUDINARY_URL, formData, {
           headers: { "Content-Type": "multipart/form-data" },
           onUploadProgress: (p) => {
             const progress = Math.round((p.loaded * 100) / p.total)
             setFiles(prev =>
-              prev.map(f => f.id === tempId ? { ...f, progress } : f)
+              prev.map(f => (f.id === tempId ? { ...f, progress } : f))
             )
           }
         })
 
-        const data = res.data
-        console.log("Cloudinary Response:", data)
+        const data = cloudRes.data
 
-        // update UI upload success
+        // Update UI - upload complete
         setFiles(prev =>
           prev.map(f =>
             f.id === tempId
@@ -76,21 +95,21 @@ export default function FileUpload() {
           )
         )
 
-        // ------------------------------
-        // STEP 2: send ONLY metadata to backend
-        // ------------------------------
-
+        // Send metadata to backend with JWT
         const payload = {
           name: file.name,
           type: file.type,
           size: file.size,
-          cloudinaryUrl: data.secure_url
+          cloudinaryUrl: data.secure_url,
         }
 
-        console.log("Sending to backend:", payload)
-
-        const apiRes = await axios.post("http://localhost:3000/save-file", payload)
-        console.log("Backend response:", apiRes.data)
+        await axios.post(
+          "http://localhost:3000/save-file",
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        )
 
       } catch (err) {
         console.log("UPLOAD ERROR:", err)
@@ -98,10 +117,16 @@ export default function FileUpload() {
     }
   }
 
+  // -----------------------------
+  // REMOVE FILE
+  // -----------------------------
   const removeFile = (id) => {
-    setFiles(prev => prev.filter(file => file.id !== id))
+    setFiles(prev => prev.filter(f => f.id !== id))
   }
 
+  // -----------------------------
+  // FORMAT SIZE
+  // -----------------------------
   const formatFileSize = (bytes) => {
     if (!bytes) return "0 Bytes"
     const sizes = ["Bytes", "KB", "MB", "GB"]
@@ -109,6 +134,9 @@ export default function FileUpload() {
     return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i]
   }
 
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <div style={{ flex: 1, overflow: "auto" }}>
       <div style={{ padding: "30px" }}>
@@ -125,12 +153,14 @@ export default function FileUpload() {
         }}>
           <div>
             <h1 style={{ fontSize: "36px", fontWeight: "bold" }}>Upload Files</h1>
-            <p style={{ fontSize: "14px", color: "#666" }}>Upload documents to manage them</p>
+            <p style={{ fontSize: "14px", color: "#666" }}>
+              Upload documents for AI analysis
+            </p>
           </div>
           <Upload size={60} color="#999" />
         </div>
 
-        {/* UPLOAD ZONE */}
+        {/* DRAG AREA */}
         <div
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -145,7 +175,8 @@ export default function FileUpload() {
             cursor: "pointer",
           }}
         >
-          <input type="file" multiple id="file-input" onChange={handleChange} style={{ display: "none" }} />
+          <input type="file" multiple id="file-input"
+            onChange={handleChange} style={{ display: "none" }} />
 
           <label htmlFor="file-input" style={{ cursor: "pointer" }}>
             <Upload style={{ width: 50, height: 50, color: "#007bff" }} />
@@ -154,50 +185,49 @@ export default function FileUpload() {
           </label>
         </div>
 
-        {/* FILES GRID */}
+        {/* FILE LIST */}
         {files.length > 0 && (
           <div style={{ marginTop: "30px" }}>
-            <h2 style={{ fontSize: "20px", fontWeight: "bold" }}>
-              Uploaded Files ({files.length})
-            </h2>
+            <h2 style={{ fontSize: "20px", fontWeight: "bold" }}>Uploaded Files</h2>
 
-            {files.map((file) => (
+            {files.map(file => (
               <div key={file.id} style={{
-                display: "flex",
-                justifyContent: "space-between",
+                background: "#fff",
                 padding: "20px",
                 marginBottom: "12px",
-                border: "1px solid #ddd",
                 borderRadius: "8px",
-                background: "#fff"
+                border: "1px solid #ddd",
+                display: "flex",
+                justifyContent: "space-between"
               }}>
 
                 <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-                  <File size={30} color="#999" />
+                  <File size={30} color="#777" />
+
                   <div>
-                    <p style={{ fontWeight: "bold" }}>{file.name}</p>
-                    <p style={{ fontSize: "12px", color: "#666" }}>{formatFileSize(file.size)}</p>
+                    <b>{file.name}</b>
+                    <p style={{ fontSize: "12px", color: "#666" }}>
+                      {formatFileSize(file.size)}
+                    </p>
+
                     {file.url && (
-                      <a href={file.url} target="_blank" style={{ color: "#007bff", fontSize: "12px" }}>
+                      <a href={file.url} target="_blank"
+                        style={{ color: "#007bff", fontSize: "12px" }}>
                         View File
                       </a>
                     )}
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                  {file.status === "completed" ? (
-                    <div style={{ color: "#28a745", display: "flex", alignItems: "center", gap: "5px" }}>
-                      <CheckCircle size={18} /> Uploaded
-                    </div>
-                  ) : (
-                    <span style={{ color: "#007bff" }}>Uploading...</span>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  {file.status === "completed"
+                    ? <span style={{ color: "green", display: "flex", alignItems: "center" }}>
+                        <CheckCircle size={18} /> Completed
+                      </span>
+                    : <span style={{ color: "#007bff" }}>Uploading... {file.progress}%</span>}
 
-                  <button
-                    onClick={() => removeFile(file.id)}
-                    style={{ background: "transparent", border: "none", color: "#dc3545" }}
-                  >
+                  <button onClick={() => removeFile(file.id)}
+                    style={{ border: "none", background: "none", color: "red" }}>
                     <X size={18} />
                   </button>
                 </div>
