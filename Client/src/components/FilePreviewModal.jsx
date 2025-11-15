@@ -1,92 +1,105 @@
 'use client'
 
-import { X, Download, FileText } from 'lucide-react'
+import { X, Download } from 'lucide-react'
 
 export default function FilePreviewModal({ file, onClose }) {
+  if (!file) return null
+
+  const url = file.cloudinaryUrl
+  const mime = file.mime || file.type || ""
+
+  const isImage = mime.startsWith("image") || url.match(/\.(png|jpg|jpeg|webp)$/i)
+  const isPDF = mime === "application/pdf" || url.endsWith(".pdf")
+  const isText =
+    mime.startsWith("text") ||
+    url.endsWith(".txt") ||
+    url.endsWith(".md")
+
+  const isExcel =
+    mime.includes("sheet") ||
+    url.match(/\.(xlsx|xls|csv)$/i)
+
+  // -------------------------
+  // PREVIEW LOGIC
+  // -------------------------
   const renderPreview = () => {
-    const type = file.type.toLowerCase()
-
-    if (type === 'image') {
+    if (isImage) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '30px', backgroundColor: '#f0f0f0', minHeight: '300px' }}>
-          <p style={{ color: '#999' }}>Image preview not available</p>
+        <div className="flex items-center justify-center h-full bg-gray-100">
+          <img src={url} className="max-h-[75vh] rounded-lg shadow" />
         </div>
       )
     }
 
-    if (type === 'pdf') {
+    if (isPDF) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '30px', textAlign: 'center' }}>
-          <div>
-            <FileText size={60} color="#dc3545" style={{ margin: '0 auto 20px' }} />
-            <p style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>{file.name}</p>
-            <p style={{ color: '#666' }}>{file.content}</p>
-          </div>
+        <iframe src={url} className="w-full h-full" />
+      )
+    }
+
+    if (isExcel) {
+      return (
+        <div className="p-6 text-center text-gray-600">
+          Excel preview not supported. Download file instead.
         </div>
       )
     }
 
-    if (type === 'spreadsheet') {
+    if (isText) {
       return (
-        <div style={{ overflow: 'auto', padding: '20px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              <tr>
-                <td style={{ border: '1px solid #ddd', padding: '12px', backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>Q1</td>
-                <td style={{ border: '1px solid #ddd', padding: '12px', backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>Q2</td>
-                <td style={{ border: '1px solid #ddd', padding: '12px', backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>Q3</td>
-                <td style={{ border: '1px solid #ddd', padding: '12px', backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>Q4</td>
-              </tr>
-              <tr>
-                <td style={{ border: '1px solid #ddd', padding: '12px' }}>$100K</td>
-                <td style={{ border: '1px solid #ddd', padding: '12px' }}>$150K</td>
-                <td style={{ border: '1px solid #ddd', padding: '12px' }}>$200K</td>
-                <td style={{ border: '1px solid #ddd', padding: '12px' }}>$250K</td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="p-6 whitespace-pre-wrap text-sm bg-white overflow-auto">
+          {file.content || "No text available"}
         </div>
       )
     }
 
     return (
-      <div style={{ padding: '30px', maxHeight: '400px', overflow: 'auto' }}>
-        <p style={{ color: '#333', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{file.content}</p>
+      <div className="p-6 text-center text-gray-500">
+        Preview not supported for this file type.
       </div>
     )
   }
 
+  const download = () => {
+    const a = document.createElement("a")
+    a.href = url
+    a.download = file.name
+    a.click()
+  }
+
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '20px' }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderBottom: '1px solid #ddd' }}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl flex flex-col max-h-[85vh] overflow-hidden">
+
+        {/* HEADER */}
+        <div className="flex justify-between items-center p-4 border-b">
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '5px' }}>{file.name}</h2>
-            <p style={{ fontSize: '12px', color: '#666' }}>{file.type} • {file.size}</p>
+            <h2 className="font-semibold text-lg">{file.name}</h2>
+            <p className="text-xs text-gray-500">{mime}</p>
           </div>
-          <button
-            onClick={onClose}
-            style={{ padding: '8px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
-          >
-            <X size={24} />
+
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <X size={22} />
           </button>
         </div>
 
-        {/* Preview Content */}
-        <div style={{ flex: 1, overflow: 'auto', backgroundColor: '#fafafa' }}>
+        {/* PREVIEW */}
+        <div className="flex-1 overflow-auto bg-gray-50">
           {renderPreview()}
         </div>
 
-        {/* Footer */}
-        <div style={{ display: 'flex', gap: '10px', padding: '20px', borderTop: '1px solid #ddd' }}>
-          <button style={{ flex: 1, padding: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-            <Download size={20} />
+        {/* FOOTER */}
+        <div className="flex gap-3 p-4 border-t bg-white">
+          <button
+            onClick={download}
+            className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700"
+          >
             Download
           </button>
+
           <button
             onClick={onClose}
-            style={{ flex: 1, padding: '12px', backgroundColor: '#f0f0f0', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            className="flex-1 py-3 bg-gray-100 rounded-lg font-medium hover:bg-gray-200"
           >
             Close
           </button>
