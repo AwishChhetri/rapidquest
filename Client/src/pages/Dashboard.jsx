@@ -1,6 +1,8 @@
+'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Search, Eye, TrendingUp } from 'lucide-react'
+import axios from 'axios'
 import FilePreviewModal from '../components/FilePreviewModal'
 
 export default function Dashboard({ setShowChat }) {
@@ -10,27 +12,50 @@ export default function Dashboard({ setShowChat }) {
     teams: [],
     tags: [],
   })
+  const [files, setFiles] = useState([])
   const [selectedFile, setSelectedFile] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const mockFiles = [
-    { id: 1, name: 'Q4 Financial Report.pdf', type: 'PDF', size: '2.4 MB', topic: 'Finance', team: 'Accounting', tags: ['report', 'fiscal'], content: '...' },
-    { id: 2, name: 'Marketing Strategy 2024.docx', type: 'Document', size: '1.8 MB', topic: 'Marketing', team: 'Marketing', tags: ['strategy', 'planning'], content: '...' },
-    { id: 3, name: 'Product Roadmap.xlsx', type: 'Spreadsheet', size: '956 KB', topic: 'Product', team: 'Product', tags: ['roadmap', 'planning'], content: '...' },
-    { id: 4, name: 'Team Meeting Notes.txt', type: 'Text', size: '45 KB', topic: 'General', team: 'Engineering', tags: ['meeting', 'notes'], content: '...' },
-    { id: 5, name: 'Brand Guidelines.pdf', type: 'PDF', size: '5.2 MB', topic: 'Design', team: 'Design', tags: ['brand', 'guidelines'], content: '...' },
-    { id: 6, name: 'Screenshot.png', type: 'Image', size: '340 KB', topic: 'General', team: 'Marketing', tags: ['screenshot'], content: '...' },
-  ]
+  // -----------------------------
+  // 🔥 FETCH FILES FROM BACKEND
+  // -----------------------------
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const res = await axios.get('http://localhost:3000/files')
+        setFiles(res.data.files)
+      } catch (error) {
+        console.log("❌ Error fetching files:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
 
+    fetchFiles()
+  }, [])
+
+  // -----------------------------
+  // 🔍 FILTERING LOGIC
+  // -----------------------------
   const filteredFiles = useMemo(() => {
-    return mockFiles.filter((file) => {
+    return files.filter((file) => {
       const matchSearch = file.name.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchTopic = selectedFilters.topics.length === 0 || selectedFilters.topics.includes(file.topic)
-      const matchTeam = selectedFilters.teams.length === 0 || selectedFilters.teams.includes(file.team)
-      const matchTags = selectedFilters.tags.length === 0 || file.tags.some((tag) => selectedFilters.tags.includes(tag))
+
+      const matchTopic =
+        selectedFilters.topics.length === 0 ||
+        selectedFilters.topics.includes(file.topic)
+
+      const matchTeam =
+        selectedFilters.teams.length === 0 ||
+        selectedFilters.teams.includes(file.team)
+
+      const matchTags =
+        selectedFilters.tags.length === 0 ||
+        file.tags?.some((tag) => selectedFilters.tags.includes(tag))
 
       return matchSearch && matchTopic && matchTeam && matchTags
     })
-  }, [searchQuery, selectedFilters])
+  }, [files, searchQuery, selectedFilters])
 
   const toggleFilter = (type, value) => {
     setSelectedFilters((prev) => ({
@@ -41,9 +66,12 @@ export default function Dashboard({ setShowChat }) {
     }))
   }
 
-  const topics = ['Finance', 'Marketing', 'Product', 'Design', 'General']
-  const teams = ['Accounting', 'Marketing', 'Product', 'Engineering', 'Design']
-  const tags = ['report', 'strategy', 'planning', 'notes', 'brand', 'guidelines', 'meeting', 'fiscal', 'roadmap']
+  // -----------------------------
+  // Extract dynamic filter options
+  // -----------------------------
+  const topics = [...new Set(files.map(f => f.topic))].filter(Boolean)
+  const teams = [...new Set(files.map(f => f.team))].filter(Boolean)
+  const tags = [...new Set(files.flatMap(f => f.tags || []))]
 
   return (
     <div className="flex-1 h-screen overflow-y-auto bg-gray-100">
@@ -134,50 +162,59 @@ export default function Dashboard({ setShowChat }) {
 
         </div>
 
+        {/* LOADING */}
+        {loading && (
+          <div className="text-center py-20 text-gray-500">Loading files...</div>
+        )}
+
         {/* FILES GRID */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Files</h2>
-            <span className="text-sm px-4 py-1.5 bg-gray-200 rounded-full">{filteredFiles.length} results</span>
-          </div>
+        {!loading && (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Files</h2>
+              <span className="text-sm px-4 py-1.5 bg-gray-200 rounded-full">
+                {filteredFiles.length} results
+              </span>
+            </div>
 
-          {filteredFiles.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredFiles.map((file) => (
-                <div
-                  key={file.id}
-                  onClick={() => setSelectedFile(file)}
-                  className="p-5 bg-white border rounded-xl shadow-sm hover:shadow-md transition cursor-pointer flex flex-col gap-4"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center text-3xl">
-                      📄
+            {filteredFiles.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredFiles.map((file) => (
+                  <div
+                    key={file._id}
+                    onClick={() => setSelectedFile(file)}
+                    className="p-5 bg-white border rounded-xl shadow-sm hover:shadow-md transition cursor-pointer flex flex-col gap-4"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center text-3xl">
+                        📄
+                      </div>
+                      <Eye size={20} className="text-gray-400" />
                     </div>
-                    <Eye size={20} className="text-gray-400" />
-                  </div>
 
-                  <div>
-                    <p className="font-semibold">{file.name}</p>
-                    <p className="text-xs text-gray-500">{file.size}</p>
-                  </div>
+                    <div>
+                      <p className="font-semibold">{file.name}</p>
+                      <p className="text-xs text-gray-500">{file.size}</p>
+                    </div>
 
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-md">
-                      {file.topic}
-                    </span>
-                    <span className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md">
-                      {file.team}
-                    </span>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-md">
+                        {file.topic}
+                      </span>
+                      <span className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md">
+                        {file.team}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 border-2 border-dashed bg-white rounded-xl text-gray-500">
-              No files match your search or filters.
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 border-2 border-dashed bg-white rounded-xl text-gray-500">
+                No files match your search or filters.
+              </div>
+            )}
+          </>
+        )}
 
       </div>
 
