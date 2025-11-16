@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Save, Eye, EyeOff, Lock, MessageSquare } from 'lucide-react'
+import { Save, Eye, EyeOff, Lock, MessageSquare, Copy, CheckCircle, AlertCircle } from 'lucide-react'
 
 export default function Settings() {
   const [loading, setLoading] = useState(true)
   const [showToken, setShowToken] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [saveStatus, setSaveStatus] = useState('')
 
   const [settings, setSettings] = useState({
     telegramConnectToken: "",
@@ -14,9 +16,6 @@ export default function Settings() {
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
 
-  // -------------------------------
-  // Load User Settings
-  // -------------------------------
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -40,9 +39,6 @@ export default function Settings() {
     loadData()
   }, [token])
 
-  // -------------------------------
-  // Generate new connect-token
-  // -------------------------------
   const generateToken = async () => {
     try {
       const res = await fetch("http://localhost:3000/generate-telegram-token", {
@@ -60,16 +56,15 @@ export default function Settings() {
           ...prev,
           telegramConnectToken: data.token
         }))
+        setSaveStatus('Token generated!')
+        setTimeout(() => setSaveStatus(''), 3000)
       }
 
     } catch (err) {
-      alert("Failed to generate token.")
+      console.error("Failed to generate token:", err)
     }
   }
 
-  // -------------------------------
-  // SAVE Telegram Chat ID
-  // -------------------------------
   const saveChatId = async () => {
     try {
       await fetch("http://localhost:3000/save-telegram-settings", {
@@ -83,150 +78,149 @@ export default function Settings() {
         }),
       })
 
-      alert("Saved successfully!")
+      setSaveStatus('Chat ID saved successfully!')
+      setTimeout(() => setSaveStatus(''), 3000)
     } catch (err) {
-      alert("Error saving.")
+      console.error("Error saving:", err)
+      setSaveStatus('Error saving settings')
+      setTimeout(() => setSaveStatus(''), 3000)
     }
   }
 
-  if (loading) return <p style={{ padding: 40 }}>Loading...</p>
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+        <p className="text-gray-300">Loading settings...</p>
+      </div>
+    </div>
+  )
 
   return (
-    <div style={{ flex: 1, height: "100vh", overflowY: "auto", background: "#fafafa" }}>
-      <div style={{ padding: 30, maxWidth: 600, margin: "0 auto" }}>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-6 md:p-12">
+      <div className="max-w-2xl mx-auto">
         {/* HEADER */}
-        <div
-          style={{
-            marginBottom: 30,
-            padding: 30,
-            background: "white",
-            borderRadius: 12,
-            border: "1px solid #ddd",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <h1 style={{ fontSize: 32, fontWeight: "bold" }}>Settings</h1>
-            <p style={{ color: "#666" }}>Telegram integration</p>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+              <Lock size={24} className="text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-white">Settings</h1>
           </div>
-          <Lock size={60} color="#999" />
+          <p className="text-gray-400 ml-12">Manage your Telegram integration</p>
         </div>
 
+        {/* STATUS MESSAGE */}
+        {saveStatus && (
+          <div className="mb-6 p-4 rounded-lg bg-emerald-900 border border-emerald-500 flex items-center gap-2">
+            <CheckCircle size={20} className="text-emerald-400" />
+            <p className="text-emerald-100">{saveStatus}</p>
+          </div>
+        )}
+
         {/* TELEGRAM SECTION */}
-        <div style={{ marginBottom: 30 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 15, marginBottom: 20 }}>
-            <MessageSquare size={30} color="#007bff" />
-            <h2 style={{ fontWeight: "bold", fontSize: 20 }}>Telegram Bot Link</h2>
+        <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl border border-slate-600 overflow-hidden shadow-2xl">
+          {/* Section Header */}
+          <div className="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 border-b border-slate-600">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+                <MessageSquare size={24} className="text-white" />
+              </div>
+              <div>
+                <h2 className="font-bold text-xl text-white">Telegram Bot Integration</h2>
+                <p className="text-indigo-100 text-sm">Connect your Telegram account securely</p>
+              </div>
+            </div>
           </div>
 
-          <div
-            style={{
-              padding: 20,
-              background: "white",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              display: "flex",
-              flexDirection: "column",
-              gap: 20,
-            }}
-          >
+          <div className="p-8 space-y-8">
             {/* TOKEN SECTION */}
-            <div>
-              <label style={{ fontWeight: "bold", marginBottom: 6, display: "block" }}>
-                Connect Token
+            <div className="space-y-4">
+              <label className="block">
+                <span className="text-white font-semibold mb-2 block">Connect Token</span>
+                <p className="text-gray-400 text-sm mb-3">Use this token to connect your Telegram bot</p>
               </label>
 
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showToken ? "text" : "password"}
-                  value={settings.telegramConnectToken || ""}
-                  readOnly
-                  style={{
-                    width: "100%",
-                    padding: 10,
-                    fontFamily: "monospace",
-                    borderRadius: 6,
-                    border: "1px solid #ddd",
-                    paddingRight: 40,
-                  }}
-                />
+              <div className="space-y-3">
+                <div className="relative group">
+                  <input
+                    type={showToken ? "text" : "password"}
+                    value={settings.telegramConnectToken || ""}
+                    readOnly
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 pr-14 font-mono text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+
+                  <button
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-4 top-3.5 text-gray-400 hover:text-indigo-400 transition"
+                  >
+                    {showToken ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
 
                 <button
-                  onClick={() => setShowToken(!showToken)}
-                  style={{
-                    position: "absolute",
-                    right: 10,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
+                  onClick={() => copyToClipboard(settings.telegramConnectToken)}
+                  className="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-gray-200 font-medium py-2 px-4 rounded-lg transition"
                 >
-                  {showToken ? <EyeOff size={18} /> : <Eye size={18} />}
+                  <Copy size={16} />
+                  {copied ? 'Copied!' : 'Copy Token'}
                 </button>
               </div>
 
               <button
                 onClick={generateToken}
-                style={{
-                  marginTop: 10,
-                  padding: "10px 15px",
-                  background: "#6c63ff",
-                  color: "white",
-                  borderRadius: 6,
-                  border: "none",
-                  cursor: "pointer",
-                }}
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105"
               >
                 Generate New Token
               </button>
 
-              <p style={{ fontSize: 12, color: "#666", marginTop: 5 }}>
-                Paste this token in Telegram using: /connect TOKEN
+              <p className="text-xs text-gray-500 bg-slate-900 rounded-lg p-3">
+                📝 <span className="text-gray-400">To connect your Telegram bot, use: </span>
+                <code className="text-indigo-400">/connect YOUR_TOKEN</code>
               </p>
             </div>
 
+            {/* DIVIDER */}
+            <div className="h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>
+
             {/* CHAT ID SECTION */}
-            <div>
-              <label style={{ fontWeight: "bold", marginBottom: 6, display: "block" }}>
-                Linked Telegram Chat ID
+            <div className="space-y-4">
+              <label className="block">
+                <span className="text-white font-semibold mb-2 block">Linked Telegram Chat ID</span>
+                <p className="text-gray-400 text-sm mb-3">Your active Telegram conversation ID</p>
               </label>
+
               <input
                 type="text"
                 value={settings.telegramChatId || ""}
                 readOnly
-                style={{
-                  width: "100%",
-                  padding: 10,
-                  borderRadius: 6,
-                  border: "1px solid #ddd",
-                  fontFamily: "monospace",
-                }}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 font-mono text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
 
               <button
                 onClick={saveChatId}
-                style={{
-                  marginTop: 10,
-                  padding: "10px 15px",
-                  background: "#28a745",
-                  color: "white",
-                  borderRadius: 6,
-                  border: "none",
-                  cursor: "pointer",
-                }}
+                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
               >
+                <Save size={18} />
                 Save Chat ID
               </button>
             </div>
-
           </div>
         </div>
 
+        {/* INFO CARD */}
+        <div className="mt-8 p-4 rounded-lg bg-slate-700 border border-slate-600 flex items-start gap-3">
+          <AlertCircle size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
+          <p className="text-gray-300 text-sm">
+            Your Telegram integration is secure and encrypted. We never store your personal chat data on our servers.
+          </p>
+        </div>
       </div>
     </div>
   )
