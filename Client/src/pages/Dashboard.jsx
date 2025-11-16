@@ -17,16 +17,16 @@ export default function Dashboard({ user }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // chatbot
+  // chatbot state
   const [showChat, setShowChat] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
 
-  // ----------------------------------
-  // FETCH FILES WITH AUTH TOKEN
-  // ----------------------------------
+  // -------------------------------------------------------
+  // FETCH FILES
+  // -------------------------------------------------------
   useEffect(() => {
     const fetchFiles = async () => {
       try {
@@ -35,7 +35,6 @@ export default function Dashboard({ user }) {
             Authorization: `Bearer ${token}`
           }
         })
-
         setFiles(res.data.files)
       } catch (error) {
         console.log("❌ Error fetching files:", error)
@@ -47,9 +46,9 @@ export default function Dashboard({ user }) {
     fetchFiles()
   }, [token])
 
-  // ----------------------------------
+  // -------------------------------------------------------
   // FILTERING
-  // ----------------------------------
+  // -------------------------------------------------------
   const filteredFiles = useMemo(() => {
     return files.filter((file) => {
       const matchSearch = file.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -74,9 +73,9 @@ export default function Dashboard({ user }) {
   const teams = [...new Set(files.map(f => f.team))].filter(Boolean)
   const tags = [...new Set(files.flatMap(f => f.tags || []))]
 
-  // ----------------------------------
-  // DOWNLOAD FILE
-  // ----------------------------------
+  // -------------------------------------------------------
+  // DOWNLOAD
+  // -------------------------------------------------------
   const downloadFile = (url, name) => {
     const a = document.createElement("a")
     a.href = url
@@ -87,9 +86,9 @@ export default function Dashboard({ user }) {
     a.remove()
   }
 
-  // ----------------------------------
-  // CHATBOT — SEND MESSAGE
-  // ----------------------------------
+  // -------------------------------------------------------
+  // CHATBOT
+  // -------------------------------------------------------
   const sendMessage = async () => {
     if (!input.trim()) return
 
@@ -119,9 +118,9 @@ export default function Dashboard({ user }) {
     }
   }
 
-  // ----------------------------------
+  // -------------------------------------------------------
   // UI
-  // ----------------------------------
+  // -------------------------------------------------------
   return (
     <div className="flex-1 h-screen overflow-y-auto bg-gray-100">
 
@@ -140,7 +139,7 @@ export default function Dashboard({ user }) {
           <TrendingUp size={55} className="text-gray-400" />
         </div>
 
-        {/* SEARCH BAR */}
+        {/* SEARCH */}
         <div className="mb-10 relative">
           <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -234,7 +233,7 @@ export default function Dashboard({ user }) {
                 {filteredFiles.map((file) => (
                   <div
                     key={file._id}
-                    className="p-5 bg-white border rounded-xl shadow-sm hover:shadow-md transition cursor-pointer"
+                    className="relative group p-5 bg-white border rounded-xl shadow-sm hover:shadow-md transition cursor-pointer"
                   >
                     <div className="flex justify-between items-start">
                       <div
@@ -272,6 +271,17 @@ export default function Dashboard({ user }) {
                       </span>
                     </div>
 
+                    {/* SUMMARY TOOLTIP */}
+                    <div className="
+                      absolute left-0 top-full mt-2 w-full 
+                      p-4 bg-black text-white text-xs rounded-lg shadow-xl
+                      opacity-0 group-hover:opacity-100 
+                      pointer-events-none transition-opacity duration-200
+                      z-50
+                    ">
+                      {file.summary || "No summary available."}
+                    </div>
+
                   </div>
                 ))}
               </div>
@@ -289,7 +299,7 @@ export default function Dashboard({ user }) {
         <FilePreviewModal file={selectedFile} onClose={() => setSelectedFile(null)} />
       )}
 
-      {/* CHATBOT PANEL */}
+      {/* CHAT PANEL */}
       {showChat && (
         <div className="fixed right-0 top-0 h-full w-96 bg-white border-l shadow-2xl flex flex-col z-50">
 
