@@ -144,7 +144,6 @@ export default function Landing({ setPage }) {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-white border-opacity-10 py-8">
         <div className="max-w-7xl mx-auto px-6 text-center text-gray-400 text-sm">
           <p>© 2025 RapidQuest AI. All rights reserved.</p>

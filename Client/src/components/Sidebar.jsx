@@ -21,7 +21,7 @@ export default function Sidebar({ currentPage, setCurrentPage, logout }) {
           <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg">
             <Sparkles size={24} className="text-white" />
           </div>
-          <span className="font-bold text-lg text-white">DocHub</span>
+          <span className="font-bold text-lg text-white">FileStation</span>
         </div>
       </div>
 

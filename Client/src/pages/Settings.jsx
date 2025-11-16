@@ -103,8 +103,9 @@ export default function Settings() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-6 md:p-12">
+    <div className="h-screen overflow-y-scroll bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-6 md:p-12">
       <div className="max-w-2xl mx-auto">
+
         {/* HEADER */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -126,7 +127,8 @@ export default function Settings() {
 
         {/* TELEGRAM SECTION */}
         <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl border border-slate-600 overflow-hidden shadow-2xl">
-          {/* Section Header */}
+
+          {/* Header */}
           <div className="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 border-b border-slate-600">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white bg-opacity-20 rounded-lg">
@@ -134,17 +136,33 @@ export default function Settings() {
               </div>
               <div>
                 <h2 className="font-bold text-xl text-white">Telegram Bot Integration</h2>
-                <p className="text-indigo-100 text-sm">Connect your Telegram account securely</p>
+                <p className="text-indigo-100 text-sm">t.me/FileStationAI_bot</p>
               </div>
             </div>
           </div>
 
           <div className="p-8 space-y-8">
+
             {/* TOKEN SECTION */}
             <div className="space-y-4">
               <label className="block">
                 <span className="text-white font-semibold mb-2 block">Connect Token</span>
-                <p className="text-gray-400 text-sm mb-3">Use this token to connect your Telegram bot</p>
+
+                <p className="text-gray-400 text-sm mb-3">
+                  How to connect:
+                  <br />1. Generate a new token.
+                  <br />
+                  2. Open Telegram →
+                  <a
+                    href="https://t.me/FileStationAI_bot"
+                    target="_blank"
+                    className="text-indigo-300 underline ml-1"
+                  >
+                    @FileStationAI_bot
+                  </a>
+                  <br />3. Send: <code className="text-indigo-400">/connect YOUR_TOKEN</code>
+                  <br />4. Your chat will link automatically.
+                </p>
               </label>
 
               <div className="space-y-3">
@@ -179,11 +197,6 @@ export default function Settings() {
               >
                 Generate New Token
               </button>
-
-              <p className="text-xs text-gray-500 bg-slate-900 rounded-lg p-3">
-                📝 <span className="text-gray-400">To connect your Telegram bot, use: </span>
-                <code className="text-indigo-400">/connect YOUR_TOKEN</code>
-              </p>
             </div>
 
             {/* DIVIDER */}
@@ -193,7 +206,7 @@ export default function Settings() {
             <div className="space-y-4">
               <label className="block">
                 <span className="text-white font-semibold mb-2 block">Linked Telegram Chat ID</span>
-                <p className="text-gray-400 text-sm mb-3">Your active Telegram conversation ID</p>
+                <p className="text-gray-400 text-sm mb-3">This appears after a successful connection.</p>
               </label>
 
               <input
@@ -205,10 +218,15 @@ export default function Settings() {
 
               <button
                 onClick={saveChatId}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
+                disabled={!!settings.telegramChatId}
+                className={`w-full font-semibold py-3 px-4 rounded-lg transition duration-200 transform flex items-center justify-center gap-2 ${
+                  settings.telegramChatId
+                    ? "bg-emerald-700 cursor-default text-white"
+                    : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white hover:scale-105"
+                }`}
               >
                 <Save size={18} />
-                Save Chat ID
+                {settings.telegramChatId ? "Telegram Connected" : "Save Chat ID"}
               </button>
             </div>
           </div>
@@ -217,9 +235,7 @@ export default function Settings() {
         {/* INFO CARD */}
         <div className="mt-8 p-4 rounded-lg bg-slate-700 border border-slate-600 flex items-start gap-3">
           <AlertCircle size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
-          <p className="text-gray-300 text-sm">
-            Your Telegram integration is secure and encrypted. We never store your personal chat data on our servers.
-          </p>
+          <p className="text-gray-300 text-sm">Your Telegram integration is secure and encrypted.</p>
         </div>
       </div>
     </div>

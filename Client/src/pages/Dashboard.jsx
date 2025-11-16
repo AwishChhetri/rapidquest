@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Eye, Download, X, Send, MessageSquare, FileText, Users, Tag, BarChart3, ChevronDown } from 'lucide-react'
+import { Search, Eye, Download, X, Send, MessageSquare, FileText, Users, Tag, BarChart3, ChevronDown, TrendingUp, HardDrive } from 'lucide-react'
 import axios from 'axios'
 
 export default function Dashboard({ user }) {
@@ -52,19 +52,29 @@ export default function Dashboard({ user }) {
     })
   }, [files, searchQuery, selectedFilters])
 
-  // METRICS CALCULATION
   const metrics = useMemo(() => {
     const totalSize = files.reduce((sum, f) => {
       const sizeNum = parseFloat(f.size) || 0
       return sum + sizeNum
     }, 0)
+    
+    // Format size in MB/GB
+    const formatSize = (mb) => {
+      if (mb >= 1024) {
+        return (mb / 1024).toFixed(2) + ' KB'
+      }
+      return mb.toFixed(2) + ' MB'
+    }
+
     return {
       totalFiles: files.length,
-      totalSize: totalSize.toFixed(2),
-      totalTeams: [...new Set(files.map(f => f.team))].length,
-      totalTopics: [...new Set(files.map(f => f.topic))].length,
+      totalSize: formatSize(totalSize),
+      totalTeams: [...new Set(files.map(f => f.team))].filter(Boolean).length,
+      totalTopics: [...new Set(files.map(f => f.topic))].filter(Boolean).length,
+      filteredCount: filteredFiles.length,
+      filteredSize: formatSize(filteredFiles.reduce((sum, f) => sum + (parseFloat(f.size) || 0), 0))
     }
-  }, [files])
+  }, [files, filteredFiles])
 
   const toggleFilter = (type, value) => {
     setSelectedFilters((prev) => ({
@@ -225,25 +235,29 @@ export default function Dashboard({ user }) {
     )
   }
 
-  const MetricCard = ({ icon: Icon, label, value, color }) => (
-    <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
+  const MetricCard = ({ icon: Icon, label, value, subLabel, color, gradient }) => (
+    <div className={`p-6 bg-gradient-to-br ${gradient} rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-105 border border-white/20`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-600 font-medium">{label}</p>
-          <p className={`text-3xl font-bold mt-2 ${color}`}>{value}</p>
+          <p className="text-sm text-white/80 font-medium">{label}</p>
+          <p className="text-3xl font-bold mt-2 text-white">{value}</p>
+          {subLabel && <p className="text-xs text-white/60 mt-1">{subLabel}</p>}
         </div>
-        <div className={`p-4 rounded-xl ${color.replace('text-', 'bg-').replace('-900', '-100')}`}>
-          <Icon size={32} className={color} />
+        <div className="p-3 rounded-xl bg-white/20 backdrop-blur">
+          <Icon size={32} className="text-white" />
         </div>
       </div>
     </div>
   )
 
   return (
-    <div className="flex-1 h-screen overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="flex-1 h-screen overflow-y-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="p-8 pb-32">
-        <div className="mb-12 p-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-lg text-white">
-          <div className="flex justify-between items-center">
+        <div className="mb-12 p-8 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl text-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl"></div>
+          </div>
+          <div className="relative flex justify-between items-center">
             <div>
               <h1 className="text-4xl font-bold">
                 {user?.name ? `Welcome back, ${user.name}! 👋` : 'Dashboard'}
@@ -252,22 +266,55 @@ export default function Dashboard({ user }) {
                 Manage, analyze, and collaborate on your documents with AI-powered insights
               </p>
             </div>
-            <BarChart3 size={64} className="text-indigo-200 opacity-80" />
+            <BarChart3 size={64} className="text-white opacity-20" />
           </div>
         </div>
 
-        <div className="mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard icon={FileText} label="Total Documents" value={metrics.totalFiles} color="text-indigo-600" />
-          <MetricCard icon={Users} label="Teams" value={metrics.totalTeams} color="text-purple-600" />
-          <MetricCard icon={Tag} label="Topics" value={metrics.totalTopics} color="text-pink-600" />
-          <MetricCard icon={BarChart3} label="Total Size" value={`${metrics.totalSize} MB`} color="text-cyan-600" />
+        <div className="mb-12">
+          <div className="mb-6 flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-white">Dashboard Overview</h2>
+            <div className="text-sm text-slate-400 flex items-center gap-2">
+              <TrendingUp size={16} />
+              Live metrics
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <MetricCard 
+              icon={FileText} 
+              label="Total Documents" 
+              value={metrics.totalFiles}
+              subLabel={`${metrics.filteredCount} visible`}
+              gradient="from-blue-500 to-cyan-500"
+            />
+            <MetricCard 
+              icon={Users} 
+              label="Teams" 
+              value={metrics.totalTeams}
+              subLabel="Active teams"
+              gradient="from-purple-500 to-pink-500"
+            />
+            <MetricCard 
+              icon={Tag} 
+              label="Topics" 
+              value={metrics.totalTopics}
+              subLabel="Categorized"
+              gradient="from-orange-500 to-red-500"
+            />
+            <MetricCard 
+              icon={HardDrive} 
+              label="Storage" 
+              value={metrics.totalSize}
+              subLabel={`${metrics.filteredSize} visible`}
+              gradient="from-emerald-500 to-teal-500"
+            />
+          </div>
         </div>
 
         {/* SEARCH */}
         <div className="mb-10 relative">
-          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
-            className="w-full bg-white border border-gray-300 px-12 py-3 rounded-xl shadow-sm text-base focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            className="w-full bg-slate-800/50 border border-slate-700 px-12 py-3 rounded-xl shadow-sm text-base focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-white placeholder-slate-500"
             placeholder="Search documents by name, topic, or team..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -278,9 +325,9 @@ export default function Dashboard({ user }) {
         <div className="space-y-6 mb-12">
           {/* TOPICS */}
           {topics.length > 0 && (
-            <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <ChevronDown size={18} className="text-indigo-600" />
+            <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl shadow-lg">
+              <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                <ChevronDown size={18} className="text-indigo-400" />
                 Topics ({selectedFilters.topics.length})
               </h3>
               <div className="flex flex-wrap gap-3">
@@ -290,8 +337,8 @@ export default function Dashboard({ user }) {
                     onClick={() => toggleFilter('topics', t)}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
                       selectedFilters.topics.includes(t)
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-indigo-600 text-white shadow-lg'
+                        : 'bg-slate-700/50 text-slate-200 hover:bg-slate-600/50 border border-slate-600'
                     }`}
                   >
                     {t}
@@ -303,9 +350,9 @@ export default function Dashboard({ user }) {
 
           {/* TEAMS */}
           {teams.length > 0 && (
-            <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <ChevronDown size={18} className="text-purple-600" />
+            <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl shadow-lg">
+              <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                <ChevronDown size={18} className="text-purple-400" />
                 Teams ({selectedFilters.teams.length})
               </h3>
               <div className="flex flex-wrap gap-3">
@@ -315,8 +362,8 @@ export default function Dashboard({ user }) {
                     onClick={() => toggleFilter('teams', team)}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
                       selectedFilters.teams.includes(team)
-                        ? 'bg-purple-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-purple-600 text-white shadow-lg'
+                        : 'bg-slate-700/50 text-slate-200 hover:bg-slate-600/50 border border-slate-600'
                     }`}
                   >
                     {team}
@@ -328,9 +375,9 @@ export default function Dashboard({ user }) {
 
           {/* TAGS */}
           {tags.length > 0 && (
-            <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <ChevronDown size={18} className="text-pink-600" />
+            <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl shadow-lg">
+              <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                <ChevronDown size={18} className="text-pink-400" />
                 Tags ({selectedFilters.tags.length})
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -340,8 +387,8 @@ export default function Dashboard({ user }) {
                     onClick={() => toggleFilter('tags', tag)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
                       selectedFilters.tags.includes(tag)
-                        ? 'bg-pink-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-pink-600 text-white shadow-lg'
+                        : 'bg-slate-700/50 text-slate-200 hover:bg-slate-600/50 border border-slate-600'
                     }`}
                   >
                     #{tag}
@@ -356,7 +403,7 @@ export default function Dashboard({ user }) {
         {loading && (
           <div className="text-center py-20">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            <p className="text-gray-600 mt-4">Loading your documents...</p>
+            <p className="text-slate-400 mt-4">Loading your documents...</p>
           </div>
         )}
 
@@ -364,8 +411,8 @@ export default function Dashboard({ user }) {
         {!loading && (
           <>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Your Documents</h2>
-              <span className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full font-semibold text-sm">
+              <h2 className="text-2xl font-bold text-white">Your Documents</h2>
+              <span className="px-4 py-2 bg-indigo-600/30 text-indigo-200 rounded-full font-semibold text-sm border border-indigo-500/50">
                 {filteredFiles.length} found
               </span>
             </div>
@@ -375,11 +422,11 @@ export default function Dashboard({ user }) {
                 {filteredFiles.map((file) => (
                   <div
                     key={file._id}
-                    className="group p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg hover:border-indigo-300 transition duration-300 cursor-pointer"
+                    className="group p-6 bg-slate-800/50 border border-slate-700 rounded-xl shadow-lg hover:shadow-2xl hover:border-indigo-500/50 transition duration-300 cursor-pointer backdrop-blur"
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div
-                        className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center text-4xl hover:scale-110 transition"
+                        className="w-16 h-16 bg-gradient-to-br from-indigo-500/30 to-purple-500/30 rounded-lg flex items-center justify-center text-4xl hover:scale-110 transition border border-indigo-500/30"
                         onClick={() => setSelectedFile(file)}
                       >
                         📄
@@ -387,14 +434,14 @@ export default function Dashboard({ user }) {
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
                         <button
                           onClick={() => setSelectedFile(file)}
-                          className="p-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg transition"
+                          className="p-2 bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-200 rounded-lg transition border border-indigo-500/30"
                           title="Preview"
                         >
                           <Eye size={20} />
                         </button>
                         <button
                           onClick={() => downloadFile(file.cloudinaryUrl, file.name)}
-                          className="p-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition"
+                          className="p-2 bg-emerald-500/30 hover:bg-emerald-500/50 text-emerald-200 rounded-lg transition border border-emerald-500/30"
                           title="Download"
                         >
                           <Download size={20} />
@@ -402,21 +449,21 @@ export default function Dashboard({ user }) {
                       </div>
                     </div>
 
-                    <h3 className="font-semibold text-gray-900 text-base mb-1 truncate">{file.name}</h3>
-                    <p className="text-xs text-gray-500 mb-4">{file.size}</p>
+                    <h3 className="font-semibold text-white text-base mb-1 truncate">{file.name}</h3>
+                    <p className="text-xs text-slate-400 mb-4">{file.size}</p>
 
                     <div className="flex gap-2 mb-4 flex-wrap">
-                      <span className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-md font-medium">
+                      <span className="px-3 py-1 text-xs bg-indigo-500/30 text-indigo-200 rounded-md font-medium border border-indigo-500/30">
                         {file.topic}
                       </span>
-                      <span className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md font-medium">
+                      <span className="px-3 py-1 text-xs bg-purple-500/30 text-purple-200 rounded-md font-medium border border-purple-500/30">
                         {file.team}
                       </span>
                     </div>
 
                     <button
                       onClick={() => setSelectedSummaryFile(file)}
-                      className="w-full py-2 text-sm bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 text-blue-700 font-medium rounded-lg transition border border-blue-200"
+                      className="w-full py-2 text-sm bg-gradient-to-r from-blue-500/30 to-cyan-500/30 hover:from-blue-500/50 hover:to-cyan-500/50 text-blue-200 font-medium rounded-lg transition border border-blue-500/30"
                     >
                       📋 View Summary
                     </button>
@@ -424,10 +471,10 @@ export default function Dashboard({ user }) {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-24 border-2 border-dashed border-gray-300 bg-white rounded-xl">
-                <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 font-medium">No documents found</p>
-                <p className="text-gray-500 text-sm">Try adjusting your filters or search query</p>
+              <div className="text-center py-24 border-2 border-dashed border-slate-700 bg-slate-800/30 rounded-xl">
+                <FileText size={48} className="mx-auto text-slate-500 mb-4" />
+                <p className="text-slate-300 font-medium">No documents found</p>
+                <p className="text-slate-500 text-sm">Try adjusting your filters or search query</p>
               </div>
             )}
           </>
@@ -441,16 +488,16 @@ export default function Dashboard({ user }) {
       {selectedSummaryFile && <SummaryModal file={selectedSummaryFile} onClose={() => setSelectedSummaryFile(null)} />}
 
       {showChat && (
-        <div className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-300 shadow-2xl flex flex-col z-50">
-          <div className="p-6 border-b bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-            <h2 className="font-bold text-lg flex items-center gap-2">
+        <div className="fixed right-0 top-0 h-full w-96 bg-slate-900 border-l border-slate-700 shadow-2xl flex flex-col z-50">
+          <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-indigo-600 to-purple-600">
+            <h2 className="font-bold text-lg flex items-center gap-2 text-white">
               <MessageSquare size={20} />
               AI Assistant
             </h2>
             <p className="text-indigo-100 text-xs mt-1">Ask anything about your documents</p>
           </div>
 
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-900/50">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
@@ -460,7 +507,7 @@ export default function Dashboard({ user }) {
                   className={`max-w-[80%] p-3 rounded-xl text-sm leading-relaxed ${
                     msg.role === 'user'
                       ? 'bg-indigo-600 text-white rounded-br-none'
-                      : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
+                      : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-bl-none'
                   }`}
                 >
                   {msg.text}
@@ -469,21 +516,21 @@ export default function Dashboard({ user }) {
             ))}
             {chatLoading && (
               <div className="flex justify-start">
-                <div className="p-3 bg-white border border-gray-200 rounded-xl">
+                <div className="p-3 bg-slate-800 border border-slate-700 rounded-xl">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                    <div className="w-2 h-2 bg-slate-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="p-4 border-t bg-white space-y-3">
+          <div className="p-4 border-t border-slate-700 bg-slate-800/50 space-y-3">
             <div className="flex gap-2">
               <input
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="flex-1 border border-slate-600 bg-slate-700/50 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-white placeholder-slate-500"
                 placeholder="Type your question..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -500,7 +547,7 @@ export default function Dashboard({ user }) {
             </div>
             <button
               onClick={() => setShowChat(false)}
-              className="w-full py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+              className="w-full py-2 text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded-lg transition"
             >
               Close
             </button>
@@ -508,10 +555,9 @@ export default function Dashboard({ user }) {
         </div>
       )}
 
-      {/* CHAT BUTTON */}
       <button
         onClick={() => setShowChat(!showChat)}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-full flex justify-center items-center shadow-2xl hover:shadow-3xl transition transform hover:scale-110 z-40"
+        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-full flex justify-center items-center shadow-2xl hover:shadow-3xl transition transform hover:scale-110 z-40 border border-indigo-500/50"
         title="Chat with AI"
       >
         <MessageSquare size={28} />

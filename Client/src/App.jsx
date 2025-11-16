@@ -7,11 +7,11 @@ import Auth from './pages/Auth'
 import Landing from './pages/Landing'
 
 function App() {
-  const [page, setPage] = useState("landing")   // landing → auth → dashboard
+  const [page, setPage] = useState("landing")   
   const [user, setUser] = useState(null)
 
   useEffect(() => {
-    // Auto-login from localStorage
+
     const savedUser = localStorage.getItem("user")
     if (savedUser) {
       setUser(JSON.parse(savedUser))
@@ -23,12 +23,9 @@ function App() {
     localStorage.removeItem("user")
     localStorage.removeItem("token")
     setUser(null)
-    setPage("auth")
+    setPage("landing")
   }
 
-  // ----------------------
-  // PUBLIC PAGES
-  // ----------------------
   if (page === "landing") {
     return <Landing setPage={setPage} />
   }
@@ -37,10 +34,7 @@ function App() {
     return <Auth setPage={setPage} setUser={setUser} />
   }
 
-  // ----------------------
-  // PROTECTED PAGES
-  // If no user, force redirect.
-  // ----------------------
+
   if (!user) {
     return <Auth setPage={setPage} setUser={setUser} />
   }
