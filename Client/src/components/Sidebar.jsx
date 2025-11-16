@@ -88,7 +88,7 @@ export default function Sidebar({ currentPage, setCurrentPage, logout }) {
             <LogOut size={20} />
             <span>Logout</span>
           </button>
-        </div>
+        </div> 
 
       </div>
     </>
