@@ -1,6 +1,3 @@
-Here’s a **short + clean README** for your project **FileStation**:
-
----
 
 # 📁 FileStation — AI-Powered Document Hub
 
@@ -89,4 +86,3 @@ frontend/
 
 ---
 
-If you want an even shorter version or want it formatted for GitHub badges, I can generate that too.
