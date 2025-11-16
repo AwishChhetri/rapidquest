@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import TelegramBot from "node-telegram-bot-api";
 import axios from "axios";
@@ -7,13 +10,12 @@ import jwt from "jsonwebtoken";
 // ----------------------------------------
 // CONFIG
 // ----------------------------------------
-const BOT_TOKEN = "8320859134:AAGVQp6NS8Zk2Xobq-wmN15km8JwaBksFyc";
-const BACKEND_URL = "http://localhost:3000";
-const MONGO_URI =
-  "mongodb+srv://abishchhetri2502_db_user:wRsWh70LcFo9eqRC@cluster0.1vbk07a.mongodb.net/?appName=Cluster0";
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const BACKEND_URL = process.env.BACKEND_URL;
+const MONGO_URI = process.env.MONGO_URI;
 
-const JWT_SECRET = "SUPER_SECRET_KEY";
-const PORT = 3002;
+const JWT_SECRET = process.env.JWT_SECRET;
+const PORT = process.env.BOT_PORT || 3002;
 
 // ----------------------------------------
 // EXPRESS SERVER TO KEEP BOT ALIVE

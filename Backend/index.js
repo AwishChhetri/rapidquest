@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 
 import express from "express";
 import mongoose from "mongoose";
@@ -12,12 +14,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3000;
-const JWT_SECRET = "SUPER_SECRET_KEY"; 
-const MONGO_URI =
-  "mongodb+srv://abishchhetri2502_db_user:wRsWh70LcFo9eqRC@cluster0.1vbk07a.mongodb.net/?appName=Cluster0";
-const GEMINI_API_KEY = "AIzaSyAmgsYN81ZWukHrwulF6l7MGlTTAS6BdvI";
-
+// ----------------------------------------
+// CONFIG MOVED TO .env
+// ----------------------------------------
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET;
+const MONGO_URI = process.env.MONGO_URI;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// ----------------------------------------
 
 mongoose
   .connect(MONGO_URI)
@@ -52,7 +56,6 @@ const fileSchema = new mongoose.Schema({
 });
 const FileModel = mongoose.model("File", fileSchema);
 
-
 function auth(req, res, next) {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -65,10 +68,8 @@ function auth(req, res, next) {
   }
 }
 
-
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
 
 const normalize = (s = "") =>
   s
@@ -106,7 +107,6 @@ function levenshtein(a = "", b = "") {
 }
 
 function fuzzyTokenMatch(text, query) {
-  // produce a small extra score for near-matches of short tokens (e.g., "excel" vs "exel")
   const qTokens = normalize(query).split(/\s+/).filter(Boolean);
   const tTokens = normalize(text).split(/\s+/).filter(Boolean);
   let score = 0;
@@ -132,7 +132,6 @@ function rankDocs(docs, query) {
       const tagScore = (d.tags || []).map(t => wordOverlapScore(t, q)).reduce((a,b)=>a+b,0);
       const summaryScore = wordOverlapScore(d.summary || "", q) * 1.2;
       const fuzzy = fuzzyTokenMatch(`${d.name} ${d.topic} ${d.tags?.join(" ")}`, q);
-      // small boost if query word appears as substring
       const substrBoost = (normalize(d.name + " " + d.summary + " " + (d.tags||[]).join(" ")).includes(q) ? 1.5 : 0);
       const score = nameScore + topicScore + tagScore + summaryScore + fuzzy + substrBoost;
       return { doc: d, score };
@@ -140,7 +139,6 @@ function rankDocs(docs, query) {
     .sort((a, b) => b.score - a.score);
 }
 
-// compact helper to build minimal context (top-K) for Gemini to save tokens
 function buildContext(topDocs, maxDocs = 5) {
   const docs = topDocs.slice(0, maxDocs).map((d) => {
     return `File: ${d.doc.name}
@@ -153,12 +151,10 @@ URL: ${d.doc.cloudinaryUrl || ""}`;
   return docs.join("\n\n");
 }
 
-
 app.get("/", (req, res) => {
   res.send("🚀 Backend Running (Intelligent chat) — /register /login /me /save-file /files /chat /generate-telegram-token /save-telegram-chat");
 });
 
-// REGISTER
 app.post("/register", async (req, res) => {
   try {
     const { name, email, password, role, department, teams } = req.body;
@@ -186,7 +182,6 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// LOGIN
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -212,7 +207,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ME
 app.get("/me", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-passwordHash");
@@ -222,7 +216,6 @@ app.get("/me", auth, async (req, res) => {
   }
 });
 
-// SAVE TELEGRAM CHAT (from frontend if user pastes chat id)
 app.post("/save-telegram-chat", auth, async (req, res) => {
   try {
     const { chatId } = req.body;
@@ -235,7 +228,6 @@ app.post("/save-telegram-chat", auth, async (req, res) => {
   }
 });
 
-// GENERATE TELEGRAM CONNECT TOKEN (frontend calls this; token saved in user)
 app.post("/generate-telegram-token", auth, async (req, res) => {
   try {
     const newToken = "TLG-" + crypto.randomBytes(8).toString("hex");
@@ -247,7 +239,6 @@ app.post("/generate-telegram-token", auth, async (req, res) => {
   }
 });
 
-// SAVE FILE: receives metadata + cloudinary url; downloads file, sends to Gemini for metadata extraction and stores file
 app.post("/save-file", auth, async (req, res) => {
   try {
     const { name, type, size, cloudinaryUrl } = req.body;
@@ -256,7 +247,6 @@ app.post("/save-file", auth, async (req, res) => {
     const fileResp = await axios.get(cloudinaryUrl, { responseType: "arraybuffer" });
     const buffer = Buffer.from(fileResp.data);
 
-    // Ask Gemini to extract topic/team/tags/summary (compact prompt)
     const aiResponse = await model.generateContent({
       contents: [
         {
@@ -278,7 +268,6 @@ app.post("/save-file", auth, async (req, res) => {
     });
 
     const aiText = aiResponse.response.text().trim();
-    // extract first JSON object substring
     const jsonStart = aiText.indexOf("{");
     const jsonEnd = aiText.lastIndexOf("}") + 1;
     if (jsonStart === -1 || jsonEnd === -1) {
@@ -307,7 +296,6 @@ app.post("/save-file", auth, async (req, res) => {
   }
 });
 
-// GET FILES WITH RBAC
 app.get("/files", auth, async (req, res) => {
   try {
     const user = req.user;
@@ -329,7 +317,6 @@ app.post("/chat", auth, async (req, res) => {
     const { question } = req.body;
     if (!question) return res.status(400).json({ error: "question required" });
 
-    // 1) Resolve RBAC and gather candidate docs
     const user = req.user;
     let queryCond = {};
     if (user.role === "admin") queryCond = {};
@@ -342,27 +329,21 @@ app.post("/chat", auth, async (req, res) => {
       return res.json({ success: true, answer: "No files available for your account." });
     }
 
-    // 2) Rank docs locally
     const ranked = rankDocs(docs, question);
     const top = ranked.filter(r => r.score > 0).slice(0, 10);
 
-    // 3) Detect a "send file" intent (very simple pattern)
     const qNorm = normalize(question);
     const wantsFileUrl = /\bsend .*file\b|\bsend .*url\b|\bshare .*file\b|\bget .*file\b|\bdownload\b/.test(qNorm);
 
     if (wantsFileUrl) {
       if (top.length === 0) return res.json({ success: true, answer: "No matching files found." });
-      // if multiple matches, return top URLs (max 3)
       const urls = top.slice(0, 3).map(t => t.doc.cloudinaryUrl).filter(Boolean);
       if (urls.length === 0) return res.json({ success: true, answer: "No file URLs available." });
-      // if user explicitly asked for a single file by name, try exact best match
       return res.json({ success: true, answer: urls.length === 1 ? urls[0] : urls.join("\n") });
     }
 
-    // 4) build compact context of top documents (limit to 5)
     const context = buildContext(top, 5);
 
-    // 5) Send to Gemini with concise prompt optimized for tokens
     const prompt = `
 You are a concise assistant. Use ONLY the information provided below from the user's documents.
 Be brief (use at most 60-90 words), mention filenames when relevant.
@@ -388,14 +369,12 @@ Answer in simple English.
     });
 
     const answer = aiRes.response.text().trim();
-    // Return answer
     res.json({ success: true, answer });
   } catch (err) {
     console.error("Chat Error:", err);
     res.status(500).json({ success: false, answer: "Chat system failed." });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

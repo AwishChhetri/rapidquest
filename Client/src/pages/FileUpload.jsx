@@ -98,7 +98,7 @@ export default function FileUpload() {
         }
 
         await axios.post(
-          "http://localhost:3000/save-file",
+          "https://rapidquest-unzo.onrender.com/save-file",
           payload,
           {
             headers: { Authorization: `Bearer ${token}` }

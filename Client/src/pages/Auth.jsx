@@ -23,7 +23,7 @@ export default function Auth({ setPage, setUser }) {
     setLoading(true);
     try {
       if (mode === "register") {
-        const res = await axios.post("http://localhost:3000/register", {
+        const res = await axios.post("https://rapidquest-unzo.onrender.com/register", {
           name: form.name,
           email: form.email,
           password: form.password,
@@ -35,7 +35,7 @@ export default function Auth({ setPage, setUser }) {
         setError("Account created successfully! Switching to login...");
         setTimeout(() => setMode("login"), 2000);
       } else {
-        const res = await axios.post("http://localhost:3000/login", {
+        const res = await axios.post("https://rapidquest-unzo.onrender.com/login", {
           email: form.email,
           password: form.password,
         });

@@ -19,7 +19,7 @@ export default function Settings() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const res = await fetch("http://localhost:3000/me", {
+        const res = await fetch("https://rapidquest-unzo.onrender.com/me", {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -41,7 +41,7 @@ export default function Settings() {
 
   const generateToken = async () => {
     try {
-      const res = await fetch("http://localhost:3000/generate-telegram-token", {
+      const res = await fetch("https://rapidquest-unzo.onrender.com/generate-telegram-token", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,7 +67,7 @@ export default function Settings() {
 
   const saveChatId = async () => {
     try {
-      await fetch("http://localhost:3000/save-telegram-settings", {
+      await fetch("https://rapidquest-unzo.onrender.com/save-telegram-settings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

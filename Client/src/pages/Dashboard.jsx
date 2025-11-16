@@ -28,7 +28,7 @@ export default function Dashboard({ user }) {
   useEffect(() => {
     const fetchFiles = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/files', {
+        const res = await axios.get('https://rapidquest-unzo.onrender.com/files', {
           headers: { Authorization: `Bearer ${token}` }
         })
         setFiles(res.data.files)
@@ -112,7 +112,7 @@ export default function Dashboard({ user }) {
 
     try {
       const res = await axios.post(
-        'http://localhost:3000/chat',
+        'https://rapidquest-unzo.onrender.com/chat',
         { question },
         { headers: { Authorization: `Bearer ${token}` } }
       )
